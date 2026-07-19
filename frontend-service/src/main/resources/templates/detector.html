@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ai vs Human text Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.20.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0E1117;
+            color: #FAFAFA;
+            padding: 20px;
+        }
+
+        .stButton button {
+            background-color: #FF4B4B;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .stButton button:hover {
+            background-color: #ff3333;
+        }
+
+        .stTextArea textarea {
+            width: 100%;
+            height: 150px;
+            background-color: #262730;
+            color: white;
+            border: 1px solid #4B4C5A;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .info-box {
+            background-color: #172a3a;
+            border-left: 5px solid #2b7a78;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .success-box {
+            background-color: #1a3320;
+            border-left: 5px solid #3c824c;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .error-box {
+            background-color: #3b1b1f;
+            border-left: 5px solid #99333a;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background-color: #3f311c;
+            border-left: 5px solid #a37f2d;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <h3>Ai vs Human text Detector</h3>
+        <p>Enter text</p>
+        <div class="stTextArea">
+            <textarea id="inputText"></textarea>
+        </div>
+        <div class="stButton mt-3 mb-4">
+            <button onclick="analyzeText()">Analyze</button>
+        </div>
+
+        <div id="results" class="row hidden">
+            <div class="col-md-4">
+                <div class="info-box"> Your Input Text</div>
+                <div class="success-box" id="result-input-text"></div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-box"> Detection Score</div>
+                <div>Perplexity: <span id="perplexity"></span></div>
+                <div>Burstiness Score: <span id="burstiness"></span></div>
+                <div id="outcome-box" class="mt-3"></div>
+                <div class="warning-box mt-3 text-sm" style="font-size: 0.85em;">
+                    Disclaimer: Our AI Detector is advanced, but no detectors are 100% reliable, no matter what their
+                    accuracy scores claim. Never use AI detection alone to make decisions that could impact a person's
+                    career or academic standing. AI plagiarism detector apps can assist in identifying potential
+                    instances of plagiarism; however, it is important to note that their results may not be entirely
+                    flawless or completely reliable. These tools employ advanced algorithms, but they can still produce
+                    false positives or false negatives. Therefore, it is recommended to use AI plagiarism detectors as a
+                    supplementary tool alongside human judgment and manual verification for accurate and comprehensive
+                    plagiarism detection.
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-box"> Basic Details</div>
+                <div id="plotly-chart"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeText() {
+            const text = document.getElementById("inputText").value;
+            if (!text) return;
+
+            document.getElementById("results").classList.remove("hidden");
+            document.getElementById("result-input-text").innerText = text;
+            document.getElementById("perplexity").innerText = "Analyzing...";
+            document.getElementById("burstiness").innerText = "Analyzing...";
+            document.getElementById("outcome-box").className = "";
+            document.getElementById("outcome-box").innerText = "";
+            Plotly.purge('plotly-chart');
+
+            try {
+                const response = await fetch('/api/detection/detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                document.getElementById("perplexity").innerText = data.perplexity.toFixed(4);
+                document.getElementById("burstiness").innerText = data.burstiness_score.toFixed(4);
+
+                const outcomeBox = document.getElementById("outcome-box");
+                outcomeBox.innerText = "Text Analysis Result: " + data.result;
+                outcomeBox.className = data.status + "-box";
+
+                const trace = {
+                    x: data.top_words.words,
+                    y: data.top_words.counts,
+                    type: 'bar',
+                    marker: { color: '#636efa' }
+                };
+                const layout = {
+                    title: 'Top 10 Most Repeated Words',
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { color: '#fafafa' },
+                    xaxis: { title: 'Words' },
+                    yaxis: { title: 'Counts' }
+                };
+                Plotly.newPlot('plotly-chart', [trace], layout);
+
+            } catch (error) {
+                console.error("Error analyzing text", error);
+                document.getElementById("perplexity").innerText = "Error";
+                document.getElementById("burstiness").innerText = "Error";
+                const outcomeBox = document.getElementById("outcome-box");
+                outcomeBox.innerText = "Error: Cannot reach the detection service. Is the Python NLP backend running on port 5001?";
+                outcomeBox.className = "error-box";
+            }
+        }
+    </script>
+</body>
+
+</html>

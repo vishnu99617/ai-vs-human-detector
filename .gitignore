@@ -1,0 +1,33 @@
+# IDEs and Editors
+.idea/
+.vscode/
+.metadata/
+*.iml
+*.iws
+*.eclipse
+
+# Maven
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Windows OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Mac OS
+.DS_Store
+
+# Logs
+*.log
